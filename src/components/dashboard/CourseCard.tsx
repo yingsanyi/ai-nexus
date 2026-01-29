@@ -1,5 +1,5 @@
 import React from 'react';
-import { Course } from '../types';
+import { Course } from '../../types';
 import { BrainCircuit, Network, MessageSquareText, ChevronRight, Bot } from 'lucide-react';
 
 interface CourseCardProps {
@@ -21,12 +21,12 @@ const CourseCard: React.FC<CourseCardProps> = ({ course, onClick, progress, comp
   };
 
   return (
-    <div 
+    <div
       onClick={onClick}
       className="group relative bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 cursor-pointer hover:border-slate-400 dark:hover:border-slate-600 transition-all duration-300 hover:shadow-xl hover:shadow-cyan-900/5 dark:hover:shadow-cyan-900/10 hover:-translate-y-1 overflow-hidden"
     >
       <div className={`absolute top-0 right-0 w-32 h-32 bg-gradient-to-br ${course.color} opacity-5 dark:opacity-10 blur-3xl group-hover:opacity-10 dark:group-hover:opacity-20 transition-opacity`}></div>
-      
+
       <div className="flex justify-between items-start mb-4">
         <div className={`p-3 rounded-lg bg-gradient-to-br ${course.color} shadow-lg shadow-black/10 dark:shadow-black/40`}>
           {getIcon(course.icon)}
@@ -39,7 +39,7 @@ const CourseCard: React.FC<CourseCardProps> = ({ course, onClick, progress, comp
       <h3 className="text-xl font-bold text-slate-900 dark:text-slate-100 mb-2 group-hover:text-cyan-600 dark:group-hover:text-cyan-400 transition-colors">
         {course.title}
       </h3>
-      
+
       <p className="text-sm text-slate-600 dark:text-slate-400 mb-6 line-clamp-2">
         {course.description}
       </p>
@@ -48,7 +48,7 @@ const CourseCard: React.FC<CourseCardProps> = ({ course, onClick, progress, comp
         <span>{progress > 0 ? '继续学习' : '开始学习'}</span>
         <ChevronRight className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform" />
       </div>
-      
+
       {/* Progress Bar */}
       <div className="mt-5 space-y-2">
         <div className="flex justify-between text-xs font-medium text-slate-500 dark:text-slate-400">
@@ -56,7 +56,7 @@ const CourseCard: React.FC<CourseCardProps> = ({ course, onClick, progress, comp
           <span>{Math.round(progress)}% ({completedCount}/{course.lessons.length})</span>
         </div>
         <div className="w-full bg-slate-100 dark:bg-slate-800 h-2 rounded-full overflow-hidden">
-          <div 
+          <div
             className={`h-full rounded-full transition-all duration-1000 ease-out ${progress === 100 ? 'bg-green-500' : 'bg-cyan-500'}`}
             style={{ width: `${progress}%` }}
           ></div>

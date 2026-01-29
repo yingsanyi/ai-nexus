@@ -33,9 +33,9 @@ const NeuralNetViz: React.FC = () => {
 
   // Dynamic layers based on complexity
   const layers = useMemo(() => [3, complexity, complexity, 2], [complexity]);
-  
+
   const layerGap = 150;
-  const nodeGap = 50; 
+  const nodeGap = 50;
   const startX = 50;
   const startY = 40;
 
@@ -81,7 +81,7 @@ const NeuralNetViz: React.FC = () => {
   const colors = {
     bg: theme === 'dark' ? '#0f172a' : '#f8fafc',
     link: theme === 'dark' ? '#334155' : '#cbd5e1',
-    nodeFill: theme === 'dark' ? '#1e293b' : '#ffffff', 
+    nodeFill: theme === 'dark' ? '#1e293b' : '#ffffff',
     nodeStrokeInput: '#10b981',   // emerald-500
     nodeStrokeOutput: '#f43f5e',  // rose-500
     nodeStrokeHidden: '#6366f1',  // indigo-500
@@ -91,14 +91,14 @@ const NeuralNetViz: React.FC = () => {
 
   return (
     <div className="w-full h-full min-h-[320px] flex flex-col rounded-xl overflow-hidden bg-slate-50 dark:bg-slate-950 transition-colors duration-300">
-      
+
       {/* Visualization Area */}
       <div className="flex-1 relative overflow-hidden">
         <div className="absolute top-4 left-4 text-[10px] font-mono opacity-60 z-10" style={{ color: colors.text }}>
-          STATUS: {isPlaying ? 'TRAINING' : 'IDLE'} <br/>
+          STATUS: {isPlaying ? 'TRAINING' : 'IDLE'} <br />
           TOPOLOGY: {layers.join('-')}
         </div>
-        
+
         <svg width="100%" height="100%" viewBox="0 0 600 340" preserveAspectRatio="xMidYMid meet">
           {/* Links */}
           {links.map((link, i) => (
@@ -117,13 +117,13 @@ const NeuralNetViz: React.FC = () => {
           {/* Active Signals (Animation) */}
           {activeSignals.map((signalId) => (
             links.map((link, i) => {
-               // Pseudo-randomly select paths to animate based on signal ID to simulate sparse activation
-               if ((signalId + i) % (Math.floor(links.length / complexity) + 1) !== 0) return null;
-               
-               // Animation duration based on speed
-               const dur = Math.max(0.5, 2 - (speed / 60)) + 's';
+              // Pseudo-randomly select paths to animate based on signal ID to simulate sparse activation
+              if ((signalId + i) % (Math.floor(links.length / complexity) + 1) !== 0) return null;
 
-               return (
+              // Animation duration based on speed
+              const dur = Math.max(0.5, 2 - (speed / 60)) + 's';
+
+              return (
                 <circle key={`sig-${signalId}-${i}`} r="3" fill={colors.signal} filter="url(#glow)">
                   <animateMotion
                     dur={dur}
@@ -134,17 +134,17 @@ const NeuralNetViz: React.FC = () => {
                   />
                   <animate attributeName="opacity" values="0;1;0" dur={dur} repeatCount="1" />
                 </circle>
-               )
+              )
             })
           ))}
 
           {/* Definitions for Glow Effect */}
           <defs>
             <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
-              <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+              <feGaussianBlur stdDeviation="2" result="coloredBlur" />
               <feMerge>
-                <feMergeNode in="coloredBlur"/>
-                <feMergeNode in="SourceGraphic"/>
+                <feMergeNode in="coloredBlur" />
+                <feMergeNode in="SourceGraphic" />
               </feMerge>
             </filter>
           </defs>
@@ -162,7 +162,7 @@ const NeuralNetViz: React.FC = () => {
                 strokeWidth="1"
                 opacity="0.2"
               />
-              
+
               {/* Core Node */}
               <circle
                 cx={node.x}
@@ -173,10 +173,10 @@ const NeuralNetViz: React.FC = () => {
                 strokeWidth="2"
                 className="transition-all duration-300"
               />
-              
+
               {/* Pulse effect when playing */}
               {isPlaying && (
-                  <circle
+                <circle
                   cx={node.x}
                   cy={node.y}
                   r="14"
@@ -193,63 +193,63 @@ const NeuralNetViz: React.FC = () => {
 
       {/* Controls Toolbar */}
       <div className="h-14 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 flex items-center px-4 gap-4 sm:gap-6 shrink-0 z-20">
-         {/* Playback Controls */}
-         <div className="flex items-center gap-2">
-             <button 
-                onClick={() => setIsPlaying(!isPlaying)}
-                className="p-2 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition-colors"
-                title={isPlaying ? "暂停" : "播放"}
-             >
-                 {isPlaying ? <Pause size={18} fill="currentColor" /> : <Play size={18} fill="currentColor" />}
-             </button>
-             <button 
-                onClick={fireSignal}
-                disabled={isPlaying}
-                className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                title="单步执行"
-             >
-                 <SkipForward size={18} />
-             </button>
-         </div>
+        {/* Playback Controls */}
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setIsPlaying(!isPlaying)}
+            className="p-2 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition-colors"
+            title={isPlaying ? "暂停" : "播放"}
+          >
+            {isPlaying ? <Pause size={18} fill="currentColor" /> : <Play size={18} fill="currentColor" />}
+          </button>
+          <button
+            onClick={fireSignal}
+            disabled={isPlaying}
+            className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+            title="单步执行"
+          >
+            <SkipForward size={18} />
+          </button>
+        </div>
 
-         <div className="w-px h-6 bg-slate-200 dark:bg-slate-700"></div>
+        <div className="w-px h-6 bg-slate-200 dark:bg-slate-700"></div>
 
-         {/* Sliders */}
-         <div className="flex-1 flex gap-4 sm:gap-8 overflow-hidden">
-             
-             {/* Speed Slider */}
-             <div className="flex flex-col justify-center gap-1 min-w-[100px] flex-1">
-                 <div className="flex justify-between items-center text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                     <span className="flex items-center gap-1"><Gauge size={10} /> 速度</span>
-                     <span>{speed}%</span>
-                 </div>
-                 <input 
-                    type="range" 
-                    min="0" 
-                    max="100" 
-                    value={speed} 
-                    onChange={(e) => setSpeed(Number(e.target.value))}
-                    className="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-cyan-500"
-                 />
-             </div>
+        {/* Sliders */}
+        <div className="flex-1 flex gap-4 sm:gap-8 overflow-hidden">
 
-             {/* Complexity Slider */}
-             <div className="flex flex-col justify-center gap-1 min-w-[100px] flex-1">
-                 <div className="flex justify-between items-center text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                     <span className="flex items-center gap-1"><Network size={10} /> 深度</span>
-                     <span>{complexity} 层</span>
-                 </div>
-                 <input 
-                    type="range" 
-                    min="2" 
-                    max="6" 
-                    step="1"
-                    value={complexity} 
-                    onChange={(e) => setComplexity(Number(e.target.value))}
-                    className="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-indigo-500"
-                 />
-             </div>
-         </div>
+          {/* Speed Slider */}
+          <div className="flex flex-col justify-center gap-1 min-w-[100px] flex-1">
+            <div className="flex justify-between items-center text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+              <span className="flex items-center gap-1"><Gauge size={10} /> 速度</span>
+              <span>{speed}%</span>
+            </div>
+            <input
+              type="range"
+              min="0"
+              max="100"
+              value={speed}
+              onChange={(e) => setSpeed(Number(e.target.value))}
+              className="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-cyan-500"
+            />
+          </div>
+
+          {/* Complexity Slider */}
+          <div className="flex flex-col justify-center gap-1 min-w-[100px] flex-1">
+            <div className="flex justify-between items-center text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+              <span className="flex items-center gap-1"><Network size={10} /> 深度</span>
+              <span>{complexity} 层</span>
+            </div>
+            <input
+              type="range"
+              min="2"
+              max="6"
+              step="1"
+              value={complexity}
+              onChange={(e) => setComplexity(Number(e.target.value))}
+              className="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-indigo-500"
+            />
+          </div>
+        </div>
       </div>
     </div>
   );

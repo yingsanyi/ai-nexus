@@ -1,4 +1,4 @@
-import { Course, Difficulty } from './types';
+import { Course, Difficulty } from '../types';
 
 export const COURSES: Course[] = [
   {
