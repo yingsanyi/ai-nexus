@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useLayoutEffect } from 'react';
 import { Send, Bot, User, Sparkles, Loader2, Settings, Key, Save, Trash2, X, Copy, Check } from 'lucide-react';
 import { ChatMessage } from '../../types';
-import { sendMessageStream, initGemini, setCustomApiKey, getCustomApiKey } from '../../services/geminiService';
+import { sendMessageStream, initAI, setApiKey, getApiKey } from '../../services/aiService';
 import ReactMarkdown from 'react-markdown';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
@@ -15,7 +15,7 @@ type TeachingStyle = 'normal' | 'socratic' | 'humorous';
 
 const ChatTutor: React.FC<ChatTutorProps> = ({ externalTrigger, onTriggerHandled }) => {
   const [messages, setMessages] = useState<ChatMessage[]>([
-    { id: '1', role: 'model', text: '你好！我是智核助手。关于本课程有什么不明白的地方，或者想深入了解某个概念吗？' }
+    { id: '1', role: 'model', text: '你好！我是基于 GLM-4.7 的智核助手。关于本课程有什么不明白的地方，或者想深入了解某个概念吗？' }
   ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -79,8 +79,8 @@ const ChatTutor: React.FC<ChatTutorProps> = ({ externalTrigger, onTriggerHandled
   }, [messages, isLoading]);
 
   useEffect(() => {
-    initGemini();
-    const storedKey = getCustomApiKey();
+    initAI();
+    const storedKey = getApiKey();
     if (storedKey) {
       setApiKeyInput(storedKey);
       setHasCustomKey(true);
@@ -98,19 +98,19 @@ const ChatTutor: React.FC<ChatTutorProps> = ({ externalTrigger, onTriggerHandled
 
   const handleSaveKey = () => {
     if (apiKeyInput.trim()) {
-      setCustomApiKey(apiKeyInput.trim());
+      setApiKey(apiKeyInput.trim());
       setHasCustomKey(true);
       setShowSettings(false);
       setMessages(prev => [...prev, {
         id: Date.now().toString(),
         role: 'model',
-        text: 'API Key 已更新，会话已重置。我们可以继续了！'
+        text: 'API Key 已更新 (GLM-4.7)，会话已重置。我们可以继续了！'
       }]);
     }
   };
 
   const handleClearKey = () => {
-    setCustomApiKey(null);
+    setApiKey(null);
     setApiKeyInput('');
     setHasCustomKey(false);
   };
@@ -129,6 +129,7 @@ const ChatTutor: React.FC<ChatTutorProps> = ({ externalTrigger, onTriggerHandled
       text: textToSend
     };
 
+    const history = [...messages, userMsg];
     setMessages(prev => [...prev, userMsg]);
     setIsLoading(true);
     shouldAutoScrollRef.current = true; // Reset auto-scroll on new send
@@ -143,8 +144,24 @@ const ChatTutor: React.FC<ChatTutorProps> = ({ externalTrigger, onTriggerHandled
       promptToSend = `[指令：请使用幽默风趣的语气。多使用比喻、网络热梗或生动的类比来解释。]\n${textToSend}`;
     }
 
+    const systemMessage = "你是一个专业的编程助手";
+    const apiMessages = [
+      { role: 'system' as const, content: systemMessage },
+      ...history
+        .filter(m => m.text.trim() !== '')
+        .map(m => ({
+          role: m.role === 'user' ? 'user' as const : 'assistant' as const,
+          content: m.text
+        }))
+    ];
+
+    apiMessages[apiMessages.length - 1] = {
+      role: 'user',
+      content: promptToSend
+    };
+
     try {
-      const stream = await sendMessageStream(promptToSend);
+      const stream = await sendMessageStream(apiMessages);
       let fullText = '';
 
       for await (const chunk of stream) {
@@ -158,10 +175,38 @@ const ChatTutor: React.FC<ChatTutorProps> = ({ externalTrigger, onTriggerHandled
           ));
         }
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
+      let errorMessage = "抱歉，连接到智核网络时出现错误。请检查您的 API Key 配置或网络连接。";
+      
+      if (error.message === 'API Key 未配置') {
+        errorMessage = "请先配置您的 GLM-4.7 API Key 才能使用智核助手。点击右上角的设置按钮进行配置。";
+        setShowSettings(true);
+      } else if (error.message && error.message.includes('AI Service Error')) {
+        const errorJson = error.message.replace('AI Service Error: ', '');
+        try {
+          const errorData = JSON.parse(errorJson);
+          const errorCode = errorData.error?.code;
+          const errorMsg = errorData.error?.message;
+          
+          if (errorCode === '1113') {
+            errorMessage = "智核账户余额不足，无法调用AI服务。请为您的智核账户充值后再试。";
+          } else if (errorCode === '401') {
+            errorMessage = "API Key 无效或已过期。请检查您的 API Key 配置。";
+            setShowSettings(true);
+          } else if (errorCode === '403') {
+            errorMessage = "API Key 没有访问权限。请检查您的 API Key 配置。";
+            setShowSettings(true);
+          } else {
+            errorMessage = `智核网络连接失败: ${errorMsg || '未知错误'} (错误码: ${errorCode})`;
+          }
+        } catch {
+          errorMessage = `智核网络连接失败: ${errorJson}`;
+        }
+      }
+
       setMessages(prev => prev.map(m =>
-        m.id === modelMsgId ? { ...m, text: "抱歉，连接到智核网络时出现错误。请检查您的 API Key 配置或网络连接。" } : m
+        m.id === modelMsgId ? { ...m, text: errorMessage } : m
       ));
     } finally {
       setIsLoading(false);
@@ -270,7 +315,7 @@ const ChatTutor: React.FC<ChatTutorProps> = ({ externalTrigger, onTriggerHandled
                   API Key 配置
                 </h4>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                  输入您自己的 Google Gemini API Key。
+                  输入您的 Zhipu AI (GLM-4.7) API Key。
                 </p>
               </div>
               <button onClick={() => setShowSettings(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">

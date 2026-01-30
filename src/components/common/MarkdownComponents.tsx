@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Check, Copy, AlertTriangle, Lightbulb, Info, Flame, CheckCircle2, XCircle, HelpCircle } from 'lucide-react';
+import CodeBlock from './CodeBlock';
 
 // --- 1. Interactive Quiz Component ---
 interface QuizData {
@@ -105,7 +106,6 @@ export const QuizBlock: React.FC<{ content: string }> = ({ content }) => {
 
 // --- 2. Enhanced Code Block ---
 export const CustomCodeBlock: React.FC<any> = ({ node, className, children, ...props }) => {
-  const [copied, setCopied] = useState(false);
   const match = /language-(\w+)/.exec(className || '');
   const lang = match ? match[1] : '';
   const content = String(children).replace(/\n$/, '');
@@ -115,43 +115,19 @@ export const CustomCodeBlock: React.FC<any> = ({ node, className, children, ...p
       return <QuizBlock content={content} />;
   }
 
-  const handleCopy = () => {
-    navigator.clipboard.writeText(content);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
+  // Inline Code
   if (!match) {
      return <code className="bg-slate-100 dark:bg-slate-800 text-pink-600 dark:text-pink-400 px-1.5 py-0.5 rounded font-mono text-sm" {...props}>{children}</code>;
   }
 
+  // Block Code with Syntax Highlighting
   return (
-    <div className="relative group my-6 rounded-2xl overflow-hidden shadow-2xl bg-[#1e1e1e] border border-slate-700/50">
-      {/* Header */}
-      <div className="flex items-center justify-between px-4 py-2 bg-[#252526] border-b border-white/5">
-        <div className="flex items-center gap-2">
-            <div className="flex gap-1.5">
-                <div className="w-3 h-3 rounded-full bg-[#ff5f56]" />
-                <div className="w-3 h-3 rounded-full bg-[#ffbd2e]" />
-                <div className="w-3 h-3 rounded-full bg-[#27c93f]" />
-            </div>
-            <span className="ml-2 text-xs text-slate-400 font-mono lowercase">{lang}</span>
-        </div>
-        <button 
-            onClick={handleCopy}
-            className="text-slate-400 hover:text-white transition-colors"
-            title="Copy code"
-        >
-            {copied ? <Check size={14} className="text-green-500" /> : <Copy size={14} />}
-        </button>
-      </div>
-      
-      {/* Content */}
-      <div className="overflow-x-auto max-h-[500px] custom-scrollbar">
-        <pre className="!bg-transparent !m-0 !p-4 font-mono text-sm leading-relaxed" {...props}>
-          {children}
-        </pre>
-      </div>
+    <div className="my-6">
+      <CodeBlock 
+        code={content} 
+        language={lang} 
+        autoHeight={true}
+      />
     </div>
   );
 };

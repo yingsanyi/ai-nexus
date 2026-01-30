@@ -1,5 +1,7 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import { Course, Lesson } from '../../types';
+import { COURSES } from '../../constants';
 import { ArrowLeft, Activity, PlayCircle, Menu, ChevronRight, CheckCircle2, Circle, Sun, Moon, Layout, MessageSquare, X, PanelLeftClose, PanelLeftOpen, Sparkles, BookOpen, Lightbulb, HelpCircle, GraduationCap, LayoutGrid, Clock, Calendar, ChevronLeft, ArrowUp, AlertTriangle, Presentation } from 'lucide-react';
 import ChatTutor from './ChatTutor';
 import NeuralNetViz from '../visualizations/NeuralNetViz';
@@ -15,6 +17,44 @@ import IntroJourney, {
     IntroValley_Slide1,
     IntroValley_Slide2
 } from '../lessons/IntroJourney';
+import EnvSetupLesson, { 
+    EnvHero, 
+    EnvHardware, 
+    EnvSoftware, 
+    EnvPlatform, 
+    EnvWeapons, 
+    EnvCloud, 
+    EnvFooter 
+} from '../lessons/EnvSetupLesson';
+import DevToolsLesson, {
+    DevToolsHero,
+    DevToolsConcept,
+    DevToolsFeatures,
+    DevToolsPractice,
+    DevToolsShortcuts,
+    DevToolsSummary
+} from '../lessons/DevToolsLesson';
+import NumPyLesson, {
+    NumPyHero,
+    NumPyWhy,
+    NumPyDimensions,
+    NumPyCreation,
+    NumPyReshape,
+    NumPyAdvanced,
+    NumPyDotProduct,
+    NumPyFooter
+} from '../lessons/NumPyLesson';
+import PandasLesson, {
+    PandasHero,
+    PandasCore,
+    PandasCreation,
+    PandasInspect,
+    PandasIndexing,
+    PandasFilter,
+    PandasProcess,
+    PandasGroup,
+    PandasFooter
+} from '../lessons/PandasLesson';
 import PresentationMode from './PresentationMode';
 import { CustomCodeBlock, CustomBlockquote } from '../common/MarkdownComponents';
 import ReactMarkdown from 'react-markdown';
@@ -23,14 +63,26 @@ import rehypeKatex from 'rehype-katex';
 import { useTheme } from '../../contexts/ThemeContext';
 
 interface LearningViewProps {
-    course: Course;
-    onBack: () => void;
     onLessonComplete: (lessonId: string) => void;
     completedLessons: Set<string>;
 }
 
-const LearningView: React.FC<LearningViewProps> = ({ course, onBack, onLessonComplete, completedLessons }) => {
-    const [activeLessonId, setActiveLessonId] = useState<string>(course.lessons[0].id);
+const LearningView: React.FC<LearningViewProps> = ({ onLessonComplete, completedLessons }) => {
+    const { courseId, lessonId } = useParams();
+    const navigate = useNavigate();
+    
+    const course = useMemo(() => COURSES.find(c => c.id === courseId), [courseId]);
+
+    // Redirect if course not found
+    useEffect(() => {
+        if (!course) {
+            navigate('/');
+        }
+    }, [course, navigate]);
+
+    if (!course) return null;
+
+    const activeLessonId = lessonId || course.lessons[0].id;
     const [showChat, setShowChat] = useState(false);
     const [showScrollTop, setShowScrollTop] = useState(false);
     const [isPresentationMode, setIsPresentationMode] = useState(false);
@@ -49,6 +101,47 @@ const LearningView: React.FC<LearningViewProps> = ({ course, onBack, onLessonCom
 
     // Scroll progress
     const [readingProgress, setReadingProgress] = useState(0);
+
+    // Resizable Panels State
+    const [leftPanelWidth, setLeftPanelWidth] = useState(288); // 288px = w-72
+    const [rightPanelWidth, setRightPanelWidth] = useState(400); // 400px
+    const [isResizingLeft, setIsResizingLeft] = useState(false);
+    const [isResizingRight, setIsResizingRight] = useState(false);
+
+    const startResizingLeft = useCallback(() => setIsResizingLeft(true), []);
+    const startResizingRight = useCallback(() => setIsResizingRight(true), []);
+    const stopResizing = useCallback(() => {
+        setIsResizingLeft(false);
+        setIsResizingRight(false);
+    }, []);
+
+    const resize = useCallback((mouseMoveEvent: MouseEvent) => {
+        if (isResizingLeft) {
+            const newWidth = mouseMoveEvent.clientX;
+            if (newWidth > 200 && newWidth < 600) setLeftPanelWidth(newWidth);
+        }
+        if (isResizingRight) {
+            const newWidth = window.innerWidth - mouseMoveEvent.clientX;
+            if (newWidth > 300 && newWidth < 800) setRightPanelWidth(newWidth);
+        }
+    }, [isResizingLeft, isResizingRight]);
+
+    useEffect(() => {
+        if (isResizingLeft || isResizingRight) {
+            window.addEventListener("mousemove", resize);
+            window.addEventListener("mouseup", stopResizing);
+            document.body.style.userSelect = 'none';
+            document.body.style.cursor = 'col-resize';
+        } else {
+            document.body.style.userSelect = '';
+            document.body.style.cursor = '';
+        }
+
+        return () => {
+            window.removeEventListener("mousemove", resize);
+            window.removeEventListener("mouseup", stopResizing);
+        };
+    }, [isResizingLeft, isResizingRight, resize, stopResizing]);
 
     // Initialize and track screen size
     useEffect(() => {
@@ -72,29 +165,30 @@ const LearningView: React.FC<LearningViewProps> = ({ course, onBack, onLessonCom
 
     const { theme, toggleTheme } = useTheme();
 
+    useEffect(() => {
+        const mainContent = document.getElementById('main-content-scroll');
+        if (mainContent) mainContent.scrollTop = 0;
+    }, [activeLessonId]);
+
     const activeLessonIndex = course.lessons.findIndex(l => l.id === activeLessonId);
     const activeLesson = course.lessons[activeLessonIndex] || course.lessons[0];
 
     const proceedToNextLesson = () => {
         onLessonComplete(activeLesson.id);
         if (activeLessonIndex < course.lessons.length - 1) {
-            setActiveLessonId(course.lessons[activeLessonIndex + 1].id);
-            const mainContent = document.getElementById('main-content-scroll');
-            if (mainContent) mainContent.scrollTop = 0;
+            navigate(`/course/${course.id}/lesson/${course.lessons[activeLessonIndex + 1].id}`);
         }
     };
 
     const handlePrevLesson = () => {
         if (activeLessonIndex > 0) {
-            setActiveLessonId(course.lessons[activeLessonIndex - 1].id);
-            const mainContent = document.getElementById('main-content-scroll');
-            if (mainContent) mainContent.scrollTop = 0;
+            navigate(`/course/${course.id}/lesson/${course.lessons[activeLessonIndex - 1].id}`);
         }
     };
 
     const finishCourse = () => {
         onLessonComplete(activeLesson.id);
-        onBack();
+        navigate('/');
     };
 
     // Completion Request Handler
@@ -154,9 +248,9 @@ const LearningView: React.FC<LearningViewProps> = ({ course, onBack, onLessonCom
             return;
         }
 
-        // Ensure we are selecting inside the article
-        const article = document.getElementById('lesson-article');
-        if (article && !article.contains(winSelection.anchorNode)) {
+        // Check if selection is within the main content area
+        const mainContent = document.getElementById('main-content-scroll');
+        if (mainContent && !mainContent.contains(winSelection.anchorNode)) {
             setSelection(null);
             return;
         }
@@ -230,19 +324,62 @@ const LearningView: React.FC<LearningViewProps> = ({ course, onBack, onLessonCom
                 <IntroValley_Slide2 />,
                 <IntroFooter isPresentation={true} />
             ];
+        } else if (activeLesson.id === 'ml-01-env') {
+            return [
+                <EnvHero isPresentation={true} />,
+                <EnvHardware isPresentation={true} />,
+                <EnvSoftware isPresentation={true} />,
+                <EnvPlatform isPresentation={true} />,
+                <EnvWeapons isPresentation={true} />,
+                <EnvCloud isPresentation={true} />,
+                <EnvFooter isPresentation={true} />
+            ];
+        } else if (activeLesson.id === 'ml-02-devtools') {
+            return [
+                <DevToolsHero isPresentation={true} />,
+                <DevToolsConcept isPresentation={true} />,
+                <DevToolsFeatures isPresentation={true} />,
+                <DevToolsPractice isPresentation={true} />,
+                <DevToolsShortcuts isPresentation={true} />,
+                <DevToolsSummary isPresentation={true} />
+            ];
+        } else if (activeLesson.id === 'ml-03-numpy') {
+            return [
+                <NumPyHero isPresentation={true} />,
+                <NumPyWhy isPresentation={true} />,
+                <NumPyDimensions isPresentation={true} />,
+                <NumPyCreation isPresentation={true} />,
+                <NumPyReshape isPresentation={true} />,
+                <NumPyAdvanced isPresentation={true} />,
+                <NumPyDotProduct isPresentation={true} />,
+                <NumPyFooter isPresentation={true} />
+            ];
+        } else if (activeLesson.id === 'ml-04-pandas') {
+            return [
+                <PandasHero isPresentation={true} />,
+                <PandasCore isPresentation={true} />,
+                <PandasCreation isPresentation={true} />,
+                <PandasInspect isPresentation={true} />,
+                <PandasIndexing isPresentation={true} />,
+                <PandasFilter isPresentation={true} />,
+                <PandasProcess isPresentation={true} />,
+                <PandasGroup isPresentation={true} />,
+                <PandasFooter isPresentation={true} />
+            ];
         } else {
             // For standard markdown lessons, split by Level 2 headers (##)
             const chunks = activeLesson.content.split(/(?=^##\s)/m).filter(s => s.trim().length > 0);
 
             const slides = chunks.map((chunk, index) => (
                 <div key={index} className="w-full max-w-6xl mx-auto">
-                    <div className="prose prose-xl prose-invert max-w-none 
-                    prose-headings:font-bold prose-headings:text-cyan-50
-                    prose-h1:text-6xl prose-h1:mb-12 prose-h1:text-transparent prose-h1:bg-clip-text prose-h1:bg-gradient-to-r prose-h1:from-cyan-300 prose-h1:to-white
-                    prose-h2:text-4xl prose-h2:border-b prose-h2:border-slate-700 prose-h2:pb-6 prose-h2:mb-10 prose-h2:text-white
-                    prose-p:text-slate-300 prose-p:leading-relaxed prose-p:text-2xl prose-p:mb-8
-                    prose-li:text-2xl prose-li:text-slate-300 prose-li:marker:text-cyan-500
-                    prose-code:text-pink-400 prose-code:bg-slate-900 prose-code:px-2 prose-code:py-1 prose-code:rounded-lg prose-code:before:content-none prose-code:after:content-none
+                    <div className="prose prose-xl prose-slate dark:prose-invert max-w-none 
+                    prose-headings:font-bold prose-headings:text-slate-900 dark:prose-headings:text-cyan-50
+                    prose-h1:text-6xl prose-h1:mb-12 prose-h1:text-transparent prose-h1:bg-clip-text prose-h1:bg-gradient-to-r prose-h1:from-cyan-600 prose-h1:to-blue-600 dark:prose-h1:from-cyan-300 dark:prose-h1:to-white
+                    prose-h2:text-4xl prose-h2:border-b prose-h2:border-slate-200 dark:prose-h2:border-slate-700 prose-h2:pb-6 prose-h2:mb-10 prose-h2:text-slate-800 dark:prose-h2:text-white
+                    prose-p:text-slate-600 dark:prose-p:text-slate-300 prose-p:leading-relaxed prose-p:text-2xl prose-p:mb-8
+                    prose-li:text-slate-600 dark:prose-li:text-slate-300 prose-li:text-xl prose-li:marker:text-cyan-600 dark:prose-li:marker:text-cyan-500
+                    prose-strong:text-cyan-600 dark:prose-strong:text-cyan-400
+                    prose-code:text-pink-600 dark:prose-code:text-pink-400 prose-code:bg-slate-100 dark:prose-code:bg-slate-800 prose-code:px-2 prose-code:py-1 prose-code:rounded-lg prose-code:before:content-none prose-code:after:content-none
                     prose-pre:bg-transparent prose-pre:p-0 prose-pre:border-none prose-pre:shadow-none
                     prose-img:rounded-3xl prose-img:shadow-2xl prose-img:mx-auto prose-img:max-h-[50vh]
                     prose-blockquote:not-italic prose-blockquote:font-normal
@@ -270,9 +407,9 @@ const LearningView: React.FC<LearningViewProps> = ({ course, onBack, onLessonCom
                             <div className="p-3 bg-cyan-500 rounded-lg shadow-lg shadow-cyan-500/30">
                                 <Activity className="text-white w-8 h-8" />
                             </div>
-                            <h2 className="text-4xl font-bold text-white">交互式演示</h2>
+                            <h2 className="text-4xl font-bold text-slate-900 dark:text-white">交互式演示</h2>
                         </div>
-                        <div className="w-full max-w-5xl aspect-video bg-white dark:bg-slate-900 rounded-3xl border border-slate-700 shadow-2xl overflow-hidden relative">
+                        <div className="w-full max-w-5xl aspect-video bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-700 shadow-2xl overflow-hidden relative">
                             {renderVisualizer(activeLesson.visualizerType)}
                         </div>
                     </div>
@@ -291,6 +428,8 @@ const LearningView: React.FC<LearningViewProps> = ({ course, onBack, onLessonCom
                     key={activeLesson.id}
                     slides={generatedSlides}
                     title={activeLesson.title}
+                    theme={theme}
+                    toggleTheme={toggleTheme}
                     onClose={() => setIsPresentationMode(false)}
                     onNextLesson={activeLessonIndex < course.lessons.length - 1 ? () => requestCompletion('next') : () => requestCompletion('finish')}
                     onPrevLesson={activeLessonIndex > 0 ? handlePrevLesson : undefined}
@@ -311,7 +450,7 @@ const LearningView: React.FC<LearningViewProps> = ({ course, onBack, onLessonCom
                     </button>
 
                     <button
-                        onClick={onBack}
+                        onClick={() => navigate('/')}
                         className="group flex items-center gap-2 pl-1.5 pr-3 py-1.5 rounded-full border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 hover:bg-white dark:hover:bg-slate-800 hover:border-cyan-500/30 dark:hover:border-cyan-500/30 hover:shadow-sm hover:shadow-cyan-500/10 transition-all duration-300"
                         title="返回仪表盘"
                     >
@@ -375,15 +514,19 @@ const LearningView: React.FC<LearningViewProps> = ({ course, onBack, onLessonCom
             <div className="flex-1 flex overflow-hidden relative w-full h-full">
 
                 {/* Left Sidebar: Syllabus */}
-                <nav className={`
-            fixed inset-y-0 left-0 z-50 flex flex-col
-            bg-white dark:bg-slate-950 border-r border-slate-200 dark:border-slate-800 
-            transition-all duration-300 ease-in-out overflow-hidden
-            ${!isLargeScreen ? (showSyllabus ? 'translate-x-0 shadow-2xl w-72' : '-translate-x-full w-72') : ''}
-            ${isLargeScreen ? 'relative transform-none shadow-none z-0' : ''}
-            ${isLargeScreen ? (showSyllabus ? 'w-72 opacity-100' : 'w-0 border-none opacity-0') : ''}
-        `}>
-                    <div className="w-72 h-full flex flex-col min-w-[18rem]">
+                <nav 
+                    className={`
+                        fixed inset-y-0 left-0 z-50 flex flex-col
+                        bg-white dark:bg-slate-950 border-r border-slate-200 dark:border-slate-800 
+                        ease-in-out overflow-hidden
+                        ${isResizingLeft ? 'transition-none' : 'transition-all duration-300'}
+                        ${!isLargeScreen ? (showSyllabus ? 'translate-x-0 shadow-2xl w-72' : '-translate-x-full w-72') : ''}
+                        ${isLargeScreen ? 'relative transform-none shadow-none z-0' : ''}
+                        ${isLargeScreen && !showSyllabus ? 'border-none opacity-0' : 'opacity-100'}
+                    `}
+                    style={isLargeScreen ? { width: showSyllabus ? leftPanelWidth : 0 } : undefined}
+                >
+                    <div className="h-full flex flex-col min-w-[18rem]" style={{ width: isLargeScreen ? leftPanelWidth : '18rem' }}>
                         {/* Header */}
                         <div className="p-4 lg:p-6 pb-2 flex items-center justify-between shrink-0">
                             <div className="flex items-center gap-2 font-bold text-slate-900 dark:text-white">
@@ -408,9 +551,7 @@ const LearningView: React.FC<LearningViewProps> = ({ course, onBack, onLessonCom
                                         <button
                                             key={lesson.id}
                                             onClick={() => {
-                                                setActiveLessonId(lesson.id);
-                                                const mainContent = document.getElementById('main-content-scroll');
-                                                if (mainContent) mainContent.scrollTop = 0;
+                                                navigate(`/course/${course.id}/lesson/${lesson.id}`);
                                                 if (!isLargeScreen) setShowSyllabus(false);
                                             }}
                                             className={`w-full group relative flex items-start gap-4 p-3 rounded-xl transition-all duration-200 text-left border ${isActive
@@ -425,6 +566,9 @@ const LearningView: React.FC<LearningViewProps> = ({ course, onBack, onLessonCom
                                                     isCompleted ? <CheckCircle2 size={16} /> : <Circle size={16} />}
                                             </div>
                                             <div className="flex flex-col">
+                                                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-0.5">
+                                                    Chapter {String(idx).padStart(2, '0')}
+                                                </span>
                                                 <span className={`text-sm font-medium transition-colors ${isActive ? 'text-slate-900 dark:text-white' : 'text-slate-600 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-slate-300'
                                                     }`}>
                                                     {lesson.title}
@@ -439,6 +583,14 @@ const LearningView: React.FC<LearningViewProps> = ({ course, onBack, onLessonCom
                             </div>
                         </div>
                     </div>
+
+                    {/* Resizer Handle */}
+                    {isLargeScreen && showSyllabus && (
+                        <div
+                            className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-cyan-500/50 active:bg-cyan-500 z-50 transition-colors"
+                            onMouseDown={startResizingLeft}
+                        />
+                    )}
                 </nav>
 
                 {/* Syllabus Overlay for Mobile */}
@@ -454,38 +606,46 @@ const LearningView: React.FC<LearningViewProps> = ({ course, onBack, onLessonCom
                     <main
                         id="main-content-scroll"
                         onScroll={handleScroll}
+                        onMouseUp={handleTextSelection}
                         className="flex-1 overflow-y-auto scroll-smooth bg-slate-50 dark:bg-black relative"
                     >
-                        <div className="max-w-4xl mx-auto px-6 py-12 md:py-16">
+                        <div className="w-full max-w-5xl lg:max-w-6xl xl:max-w-7xl mx-auto px-6 py-12 md:py-16">
 
                             {/* Conditional Rendering for Rich Content vs Standard Markdown */}
                             {activeLesson.id === 'ml-00-intro' ? (
                                 <IntroJourney onNext={activeLessonIndex < course.lessons.length - 1 ? () => requestCompletion('next') : () => requestCompletion('finish')} />
+                            ) : activeLesson.id === 'ml-01-env' ? (
+                                <EnvSetupLesson onNext={activeLessonIndex < course.lessons.length - 1 ? () => requestCompletion('next') : () => requestCompletion('finish')} />
+                            ) : activeLesson.id === 'ml-02-devtools' ? (
+                                <DevToolsLesson onNext={activeLessonIndex < course.lessons.length - 1 ? () => requestCompletion('next') : () => requestCompletion('finish')} />
+                            ) : activeLesson.id === 'ml-03-numpy' ? (
+                                <NumPyLesson onNext={activeLessonIndex < course.lessons.length - 1 ? () => requestCompletion('next') : () => requestCompletion('finish')} />
+                            ) : activeLesson.id === 'ml-04-pandas' ? (
+                                <PandasLesson onNext={activeLessonIndex < course.lessons.length - 1 ? () => requestCompletion('next') : () => requestCompletion('finish')} />
                             ) : (
                                 <>
                                     {/* Standard Hero Section */}
                                     <div className="mb-12 text-center md:text-left">
-                                        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-100/50 dark:bg-cyan-900/20 border border-cyan-200 dark:border-cyan-800 text-cyan-700 dark:text-cyan-300 text-xs font-bold tracking-wide uppercase mb-6">
+                                        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-100/50 dark:bg-cyan-900/20 border border-cyan-200 dark:border-cyan-800 text-cyan-700 dark:text-cyan-300 text-sm font-bold tracking-wide uppercase mb-6">
                                             <span className="w-2 h-2 rounded-full bg-cyan-500 animate-pulse"></span>
-                                            Chapter {activeLessonIndex + 1}
+                                            Chapter {String(activeLessonIndex).padStart(2, '0')}
                                         </div>
-                                        <h1 className="text-3xl md:text-5xl font-extrabold text-slate-900 dark:text-white mb-6 leading-tight tracking-tight">
+                                        <h1 className="text-4xl md:text-6xl font-extrabold text-slate-900 dark:text-white mb-6 leading-tight tracking-tight">
                                             {activeLesson.title}
                                         </h1>
-                                        <div className="flex flex-wrap gap-6 text-sm text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800 pb-8">
-                                            <span className="flex items-center gap-2"><Clock size={16} className="text-cyan-500" /> {Math.max(1, Math.ceil(activeLesson.content.length / 500))} min read</span>
-                                            <span className="flex items-center gap-2"><Calendar size={16} className="text-cyan-500" /> Updated recently</span>
-                                            <span className="flex items-center gap-2"><CheckCircle2 size={16} className={completedLessons.has(activeLesson.id) ? "text-green-500" : "text-slate-400"} /> {completedLessons.has(activeLesson.id) ? 'Completed' : 'Not completed'}</span>
+                                        <div className="flex flex-wrap gap-6 text-lg text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800 pb-8">
+                                            <span className="flex items-center gap-2"><Clock size={20} className="text-cyan-500" /> {Math.max(1, Math.ceil(activeLesson.content.length / 500))} min read</span>
+                                            <span className="flex items-center gap-2"><Calendar size={20} className="text-cyan-500" /> Updated recently</span>
+                                            <span className="flex items-center gap-2"><CheckCircle2 size={20} className={completedLessons.has(activeLesson.id) ? "text-green-500" : "text-slate-400"} /> {completedLessons.has(activeLesson.id) ? 'Completed' : 'Not completed'}</span>
                                         </div>
                                     </div>
 
                                     {/* Article Content */}
                                     <article
                                         id="lesson-article"
-                                        onMouseUp={handleTextSelection}
                                         className="min-h-[200px]"
                                     >
-                                        <div className="prose prose-lg prose-slate dark:prose-invert max-w-none 
+                                        <div className="prose prose-2xl prose-slate dark:prose-invert max-w-none 
                                     prose-headings:font-bold prose-headings:tracking-tight prose-headings:text-slate-900 dark:prose-headings:text-slate-100
                                     prose-p:leading-relaxed prose-p:text-slate-600 dark:prose-p:text-slate-300
                                     prose-a:text-cyan-600 dark:prose-a:text-cyan-400 prose-a:no-underline hover:prose-a:underline
@@ -499,7 +659,7 @@ const LearningView: React.FC<LearningViewProps> = ({ course, onBack, onLessonCom
                                                 rehypePlugins={[rehypeKatex]}
                                                 components={{
                                                     h2: ({ node, children, ...props }) => (
-                                                        <h2 className="text-2xl md:text-3xl font-bold mt-12 mb-6 pb-2 border-b border-slate-200 dark:border-slate-800" {...props}>
+                                                        <h2 className="text-3xl md:text-4xl font-bold mt-12 mb-6 pb-2 border-b border-slate-200 dark:border-slate-800" {...props}>
                                                             {children}
                                                         </h2>
                                                     ),
@@ -580,7 +740,7 @@ const LearningView: React.FC<LearningViewProps> = ({ course, onBack, onLessonCom
                         {/* Selection Menu Popover */}
                         {selection && (
                             <div
-                                className="fixed z-50 -translate-x-1/2 -translate-y-full pb-3 animate-in fade-in zoom-in duration-200 flex flex-col items-center"
+                                className="fixed z-[100] -translate-x-1/2 -translate-y-full pb-3 animate-in fade-in zoom-in duration-200 flex flex-col items-center"
                                 style={{ left: selection.x, top: selection.y }}
                             >
                                 <div className="bg-slate-900 dark:bg-slate-800 text-white rounded-xl shadow-2xl p-1.5 flex items-center gap-1 border border-slate-700/50 backdrop-blur-md">
@@ -668,7 +828,25 @@ const LearningView: React.FC<LearningViewProps> = ({ course, onBack, onLessonCom
                 )}
 
                 {/* Right: AI Tutor */}
-                <aside className={`${showChat ? 'translate-x-0 w-full md:w-[400px]' : 'translate-x-full w-0'} fixed inset-y-0 right-0 z-40 xl:relative transition-all duration-300 shadow-2xl xl:shadow-none bg-white dark:bg-slate-950 border-l border-slate-200 dark:border-slate-800 h-full overflow-hidden`}>
+                <aside 
+                    className={`
+                        fixed inset-y-0 right-0 z-40 xl:relative 
+                        bg-white dark:bg-slate-950 border-l border-slate-200 dark:border-slate-800 h-full overflow-hidden
+                        ${isResizingRight ? 'transition-none' : 'transition-all duration-300'}
+                        ${!isLargeScreen ? (showChat ? 'translate-x-0 w-full shadow-2xl' : 'translate-x-full w-0') : ''}
+                        ${isLargeScreen ? 'shadow-none' : ''}
+                        ${isLargeScreen ? (showChat ? 'translate-x-0' : 'translate-x-full w-0 border-none') : ''}
+                    `}
+                    style={isLargeScreen ? { width: showChat ? rightPanelWidth : 0 } : undefined}
+                >
+                    {/* Resizer Handle */}
+                    {isLargeScreen && showChat && (
+                        <div
+                            className="absolute left-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-cyan-500/50 active:bg-cyan-500 z-50 transition-colors"
+                            onMouseDown={startResizingRight}
+                        />
+                    )}
+
                     <div className="h-full flex flex-col w-full absolute inset-0">
                         {/* Mobile Header for Chat */}
                         <div className="xl:hidden p-4 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-white dark:bg-slate-950 shrink-0">
