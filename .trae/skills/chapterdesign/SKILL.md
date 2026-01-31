@@ -23,6 +23,7 @@ description: 创建新教程章节时，自动生成章节组件与接入改动�
      - 顶层固定单屏：`h-[calc(100vh-...)]`（或容器高度），禁止整体纵向滚动
      - 内容超出：用 tabs/stepper/分页卡片在同屏切换信息，不拉长页面
      - 文案不用 Markdown 结构符号，直接以 UI 文案呈现
+     - 页面的内容不要溢出一张PPT的区域
 
 2. 修改 `courses.ts`
    - 新增 chapter 元数据：title、id/slug、componentKey（或直接引用组件）、预计时长/标签（按你现有结构）

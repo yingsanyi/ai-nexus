@@ -55,6 +55,40 @@ import PandasLesson, {
     PandasGroup,
     PandasFooter
 } from '../lessons/PandasLesson';
+import VisualizationLesson, {
+    VizHero,
+    VizConcept,
+    VizWorkflow,
+    VizBasicCharts,
+    VizDistribution,
+    VizRelation,
+    VizCategorical,
+    VizHeatmap,
+    VizFooter
+} from '../lessons/VisualizationLesson';
+import SklearnLesson, {
+    SklearnHero,
+    SklearnCore,
+    SklearnPractice,
+    SklearnSwitch,
+    SklearnFooter
+} from '../lessons/SklearnLesson';
+import FeatureEngineeringLesson, {
+    FeatEngHero,
+    FeatEngEncoding,
+    FeatEngScaling,
+    FeatEngConstruction,
+    FeatEngFooter
+} from '../lessons/FeatureEngineeringLesson';
+import AlgorithmMapLesson, {
+    AlgoMapHero,
+    AlgoMapConcepts,
+    AlgoMapTasks,
+    AlgoMapFamilies,
+    AlgoMapGuide,
+    AlgoMapNoFreeLunch,
+    AlgoMapSummary
+} from '../lessons/AlgorithmMapLesson';
 import PresentationMode from './PresentationMode';
 import { CustomCodeBlock, CustomBlockquote } from '../common/MarkdownComponents';
 import ReactMarkdown from 'react-markdown';
@@ -366,6 +400,44 @@ const LearningView: React.FC<LearningViewProps> = ({ onLessonComplete, completed
                 <PandasGroup isPresentation={true} />,
                 <PandasFooter isPresentation={true} />
             ];
+        } else if (activeLesson.id === 'ml-05-visualization') {
+            return [
+                <VizHero isPresentation={true} />,
+                <VizConcept isPresentation={true} />,
+                <VizWorkflow isPresentation={true} />,
+                <VizBasicCharts isPresentation={true} />,
+                <VizDistribution isPresentation={true} />,
+                <VizRelation isPresentation={true} />,
+                <VizCategorical isPresentation={true} />,
+                <VizHeatmap isPresentation={true} />,
+                <VizFooter isPresentation={true} />
+            ];
+        } else if (activeLesson.id === 'ml-06-sklearn') {
+            return [
+                <SklearnHero isPresentation={true} />,
+                <SklearnCore isPresentation={true} />,
+                <SklearnPractice isPresentation={true} />,
+                <SklearnSwitch isPresentation={true} />,
+                <SklearnFooter isPresentation={true} />
+            ];
+        } else if (activeLesson.id === 'ml-07-feature-engineering') {
+            return [
+                <FeatEngHero isPresentation={true} />,
+                <FeatEngEncoding isPresentation={true} />,
+                <FeatEngScaling isPresentation={true} />,
+                <FeatEngConstruction isPresentation={true} />,
+                <FeatEngFooter isPresentation={true} />
+            ];
+        } else if (activeLesson.id === 'ml-08-algorithm-map') {
+            return [
+                <AlgoMapHero isPresentation={true} />,
+                <AlgoMapConcepts isPresentation={true} />,
+                <AlgoMapTasks isPresentation={true} />,
+                <AlgoMapFamilies isPresentation={true} />,
+                <AlgoMapGuide isPresentation={true} />,
+                <AlgoMapNoFreeLunch isPresentation={true} />,
+                <AlgoMapSummary isPresentation={true} />
+            ];
         } else {
             // For standard markdown lessons, split by Level 2 headers (##)
             const chunks = activeLesson.content.split(/(?=^##\s)/m).filter(s => s.trim().length > 0);
@@ -622,6 +694,14 @@ const LearningView: React.FC<LearningViewProps> = ({ onLessonComplete, completed
                                 <NumPyLesson onNext={activeLessonIndex < course.lessons.length - 1 ? () => requestCompletion('next') : () => requestCompletion('finish')} />
                             ) : activeLesson.id === 'ml-04-pandas' ? (
                                 <PandasLesson onNext={activeLessonIndex < course.lessons.length - 1 ? () => requestCompletion('next') : () => requestCompletion('finish')} />
+                            ) : activeLesson.id === 'ml-05-visualization' ? (
+                                <VisualizationLesson onNext={activeLessonIndex < course.lessons.length - 1 ? () => requestCompletion('next') : () => requestCompletion('finish')} />
+                            ) : activeLesson.id === 'ml-06-sklearn' ? (
+                                <SklearnLesson onNext={activeLessonIndex < course.lessons.length - 1 ? () => requestCompletion('next') : () => requestCompletion('finish')} />
+                            ) : activeLesson.id === 'ml-07-feature-engineering' ? (
+                                <FeatureEngineeringLesson onNext={activeLessonIndex < course.lessons.length - 1 ? () => requestCompletion('next') : () => requestCompletion('finish')} />
+                            ) : activeLesson.id === 'ml-08-algorithm-map' ? (
+                                <AlgorithmMapLesson onNext={activeLessonIndex < course.lessons.length - 1 ? () => requestCompletion('next') : () => requestCompletion('finish')} />
                             ) : (
                                 <>
                                     {/* Standard Hero Section */}
